@@ -1,0 +1,50 @@
+[
+  {
+    "id_venda": 1001,
+    "id_cliente": 1,
+    "id_produto": 101,
+    "data_venda": "2023-10-01",
+    "quantidade": 1,
+    "valor_total": 1500.00
+  },
+  {
+    "id_venda": 1002,
+    "id_cliente": 2,
+    "id_produto": 103,
+    "data_venda": "15/10/2023",
+    "quantidade": 2,
+    "valor_total": 0.00
+  },
+  {
+    "id_venda": 1003,
+    "id_cliente": null,
+    "id_produto": 102,
+    "data_venda": "2023-10-18",
+    "quantidade": 1,
+    "valor_total": 1200.50
+  },
+  {
+    "id_venda": 1004,
+    "id_cliente": 3,
+    "id_produto": 104,
+    "data_venda": "2023-10-20",
+    "quantidade": -1,
+    "valor_total": 2000.00
+  },
+  {
+    "id_venda": 1005,
+    "id_cliente": 4,
+    "id_produto": "105",
+    "data_venda": "2023-10-22",
+    "quantidade": 3,
+    "valor_total": 135.00
+  },
+  {
+    "id_venda": 1001,
+    "id_cliente": 1,
+    "id_produto": 101,
+    "data_venda": "2023-10-01",
+    "quantidade": 1,
+    "valor_total": 1500.00
+  }
+]

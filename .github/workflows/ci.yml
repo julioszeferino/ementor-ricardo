@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.13.0"
+  AIRFLOW_VERSION: "3.3.2"
+  PYTHON_VERSION: "3.12"
+
+# Os nomes dos jobs (lint, test, dbt, airflow-dags, secrets) são os "required checks"
+# da proteção da branch master. Se renomear um job, atualize scripts/setup_github_guardrails.sh.
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --locked
+      - name: ruff (lint + segurança)
+        run: uv run ruff check .
+      - name: ruff (formatação)
+        run: uv run ruff format --check .
+      - name: mypy
+        run: uv run mypy
+      - name: sqlfluff (modelos dbt)
+        run: uv run sqlfluff lint dbt/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --locked
+      - name: pytest + cobertura mínima de 90%
+        run: uv run pytest
+
+  dbt:
+    runs-on: ubuntu-latest
+    env:
+      DW_PASSWORD: ci-only-not-a-secret
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.UV_VERSION }}
+      - run: uv sync --locked --only-group dbt --no-install-project
+      - name: dbt parse
+        run: uv run --no-sync dbt parse --project-dir dbt --profiles-dir dbt
+
+  airflow-dags:
+    runs-on: ubuntu-latest
+    env:
+      AIRFLOW_HOME: ${{ github.workspace }}/.airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Instala Airflow com constraints oficiais
+        run: |
+          uv venv .venv-airflow
+          VIRTUAL_ENV=.venv-airflow uv pip install "apache-airflow==${AIRFLOW_VERSION}" "pytest==9.1.1" \
+            --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-${PYTHON_VERSION}.txt"
+      - name: Testes de integridade das DAGs
+        run: .venv-airflow/bin/python -m pytest airflow/tests -p no:cacheprovider -o addopts=""
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

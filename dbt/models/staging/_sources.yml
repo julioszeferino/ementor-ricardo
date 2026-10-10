@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Dados brutos carregados pela ingestão Python (src/ingestion).
+    schema: raw
+    tables:
+      - name: clientes
+        description: Origem data/clientes/clientes.csv
+      - name: produtos
+        description: Origem data/produtos/produtos.txt
+      - name: vendas
+        description: Origem data/vendas/vendas2023.json

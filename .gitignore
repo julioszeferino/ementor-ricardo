@@ -1,0 +1,36 @@
+# Segredos
+.env
+*.pem
+*.key
+
+# Python
+.venv/
+.venv-*/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+dist/
+*.egg-info/
+
+# dbt
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+dbt/.user.yml
+
+# Airflow
+airflow/logs/*
+!airflow/logs/.gitkeep
+.airflow/
+
+# Diversos
+logs/
+*.db
+.DS_Store
+.idea/
+.vscode/

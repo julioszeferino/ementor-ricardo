@@ -1,0 +1,6 @@
+id_produto|nome_produto|categoria|preco
+101|Bicicleta Mountain Bike Aro 29|Mountain Bike|1500.00
+102|Bicicleta Urbana|urbana|1200,50
+103|Capacete Ciclismo|Acessorios|
+104|  Bicicleta Speed  |Speed|DOIS MIL
+105|Luz de Led Traseira||45.00

@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: stg_clientes
+    description: Clientes padronizados (exemplo).
+    columns:
+      - name: cliente_id
+        description: Chave natural do cliente.
+        data_tests:
+          - unique
+          - not_null
+      - name: uf
+        data_tests:
+          - not_null
