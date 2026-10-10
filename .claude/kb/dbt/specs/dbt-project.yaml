@@ -1,0 +1,157 @@
+schema_version: "1.0"
+domain: dbt
+file_type: dbt_project.yml + profiles.yml + packages.yml + properties YAML
+last_validated: "2026-10-09"
+source: "docs.getdbt.com (project configs, profiles/postgres setup, postgres-configs, incremental strategy, snapshots, data tests, unit tests, freshness, custom schemas, upgrade guides 1.10/1.11), hub.getdbt.com dbt_utils 1.4.1; checked with dbt-core 1.11.15 + dbt-postgres 1.11.0 (`dbt parse`, `dbt build` on a scratch Postgres 16)"
+
+# Note: this domain's spec describes YAML keys of the dbt project files, not
+# fixed-width records, so the template's `position`/`length` keys are not
+# applicable and are omitted (same convention as specs/python-toolchain.yaml and
+# specs/compose-stack.yaml).
+records:
+  dbt_project:
+    description: "dbt/dbt_project.yml"
+    fields:
+      name:
+        type: string
+        required: true
+        default: "dw"
+        validation:
+          - "matches ^[a-z_][a-z0-9_]*$"
+          - "equals the key under models:/seeds:/snapshots:/data_tests: blocks"
+        notes: "Project name, also the package name in ref('dw', ...)"
+      profile:
+        type: string
+        required: true
+        default: "dw"
+        validation:
+          - "exists as a top-level key in profiles.yml"
+        notes: "Same profile name as docker/patterns/dbt-runner-container.md"
+      config-version:
+        type: integer
+        required: false
+        default: "2"
+        validation:
+          - "2 if present"
+        notes: ""
+      require-dbt-version:
+        type: string  # list of version specifiers
+        required: true
+        default: "[\">=1.11.0\", \"<1.12.0\"]"
+        validation:
+          - "range contains the pinned dbt-core version (~=1.11.0)"
+        notes: "Bump together with Dockerfile/Airflow pins"
+      models.dw.<folder>.+materialized:
+        type: string
+        required: true
+        default: "staging=view, intermediate=ephemeral, marts=table"
+        validation:
+          - "one of view|table|incremental|ephemeral|materialized_view"
+          - "config keys use the + prefix"
+        notes: "Model config() overrides folder config"
+      models.dw.<folder>.+schema:
+        type: string
+        required: true
+        default: "staging | intermediate | marts"
+        validation:
+          - "used together with macros/generate_schema_name.sql calling generate_schema_name_for_env"
+          - "prod schemas raw/staging/marts match the Postgres init script"
+        notes: "Without the override dbt builds <target_schema>_<custom>"
+      snapshots.dw.+schema:
+        type: string
+        required: true
+        default: "snapshots"
+        validation:
+          - "no target_schema (1.9+ env-aware snapshots)"
+        notes: ""
+      vars:
+        type: string  # mapping
+        required: false
+        default: "{data_inicio_calendario: '2020-01-01'}"
+        validation:
+          - "every var() without default is declared here"
+        notes: "--vars on the CLI overrides"
+
+  profiles:
+    description: "dbt/profiles.yml (committed, secrets only via env_var)"
+    fields:
+      dw.target:
+        type: string
+        required: true
+        default: "{{ env_var('DBT_TARGET', 'dev') }}"
+        validation:
+          - "resolves to an existing output"
+        notes: ""
+      dw.outputs.<target>.type:
+        type: string
+        required: true
+        default: "postgres"
+        validation:
+          - "equals postgres"
+        notes: ""
+      dw.outputs.<target>.host/port/user/password/dbname/schema/threads:
+        type: string
+        required: true
+        default: "env_var lookups"
+        validation:
+          - "password uses env_var('DBT_PASSWORD') with no default"
+          - "port and threads use | as_number"
+          - "Jinja values are quoted strings"
+          - "prod host default is the compose service name `postgres`, port 5432"
+        notes: "dev default localhost:5433 (published port)"
+      dw.outputs.prod:
+        type: string  # mapping
+        required: true
+        default: "output named exactly `prod`"
+        validation:
+          - "name is `prod` (generate_schema_name_for_env checks target.name == 'prod')"
+        notes: "docker KB currently uses targets docker/local -- align"
+
+  packages:
+    description: "dbt/packages.yml + package-lock.yml"
+    fields:
+      packages[dbt-labs/dbt_utils].version:
+        type: string
+        required: true
+        default: "[\">=1.4.0\", \"<2.0.0\"]"
+        validation:
+          - "package-lock.yml committed"
+          - "dbt_packages/ git-ignored"
+        notes: "Resolved 1.4.1 on 2026-10-09"
+
+  properties_yaml:
+    description: "_<dir>__models.yml / _<source>__sources.yml under models/"
+    fields:
+      data_tests[].<generic>.arguments:
+        type: string  # mapping
+        required: true
+        default: ""
+        validation:
+          - "generic test inputs nested under arguments: (1.10.5+)"
+          - "severity/where/store_failures under config:, not arguments:"
+        notes: "Top-level form -> MissingArgumentsPropertyInGenericTestDeprecation"
+      sources[].config.freshness:
+        type: string  # mapping
+        required: false
+        default: "warn_after 24h / error_after 48h"
+        validation:
+          - "under config: together with loaded_at_field"
+        notes: "Top-level form is legacy (no warning on Postgres in 1.11.15)"
+      models[].columns[].data_tests:
+        type: string  # list
+        required: true
+        default: "[unique, not_null] on the primary key"
+        validation:
+          - "every model has a PK test"
+          - "every fct_* FK has relationships to its dim"
+          - "each model declared in exactly one YAML file"
+        notes: ""
+      unit_tests[]:
+        type: string  # list
+        required: false
+        default: ""
+        validation:
+          - "defined under models/, not tests/"
+          - "every ref/source of the model listed in given"
+          - "ephemeral parents use format: sql"
+        notes: "Excluded in prod via --exclude-resource-type unit_test"

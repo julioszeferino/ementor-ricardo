@@ -1,0 +1,148 @@
+schema_version: "1.0"
+domain: docker
+file_type: compose.yaml
+last_validated: "2026-10-09"
+source: "Compose Specification (docs.docker.com/reference/compose-file), Dockerfile reference, hub.docker.com/_/postgres, airflow.apache.org docker-compose guide (3.3.2), docs.getdbt.com env_var; checked with docker compose 5.3.1 `config`"
+
+# Note: this domain's spec describes YAML keys of the project's compose.yaml, not
+# fixed-width records, so the template's `position`/`length` keys are not
+# applicable and are omitted (same convention as specs/python-toolchain.yaml).
+records:
+  top-level:
+    description: "Top-level elements of compose.yaml"
+    fields:
+      name:
+        type: string
+        required: true
+        default: "directory name"
+        validation:
+          - "matches ^[a-z0-9][a-z0-9_-]*$"
+          - "set to `dw` so volumes/networks are dw_pgdata, dw_default"
+        notes: "Exposed as COMPOSE_PROJECT_NAME"
+      version:
+        type: string
+        required: false
+        default: ""
+        validation:
+          - "must be absent (obsolete; Compose prints a warning)"
+        notes: ""
+      volumes:
+        type: string  # map of volume names
+        required: true
+        default: "{}"
+        validation:
+          - "declares every named volume used by a service (pgdata, airflow-db)"
+        notes: "Removed only by `docker compose down -v`"
+      secrets:
+        type: string  # map of secret names
+        required: true
+        default: "{}"
+        validation:
+          - "each secret uses `file:` pointing to a git-ignored path"
+        notes: "Mounted at /run/secrets/<name>, mode 0444"
+
+  service.postgres:
+    description: "Warehouse database service"
+    fields:
+      image:
+        type: string
+        required: true
+        default: "postgres:18"
+        validation:
+          - "pinned major tag; never `latest`"
+          - "if major >= 18 volume target is /var/lib/postgresql, else /var/lib/postgresql/data"
+        notes: "See patterns/postgres-service.md"
+      environment.POSTGRES_PASSWORD_FILE:
+        type: string
+        required: true
+        default: "/run/secrets/pg_password"
+        validation:
+          - "POSTGRES_PASSWORD (plain) must not be hardcoded in compose.yaml"
+        notes: "POSTGRES_PASSWORD or its _FILE variant is required by the image"
+      healthcheck.test:
+        type: string
+        required: true
+        default: "[\"CMD-SHELL\", \"pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}\"]"
+        validation:
+          - "uses pg_isready"
+          - "CMD-SHELL form when referencing env vars, with $$ escaping"
+        notes: ""
+      ports:
+        type: string
+        required: false
+        default: "127.0.0.1:5433:5432"
+        validation:
+          - "container port is 5432"
+          - "host port != 5432 if a host Postgres may exist"
+        notes: "Only needed for host clients (psql, DBeaver, dbt --target local)"
+
+  service.dependent:
+    description: "Any service that connects to Postgres (ingest, dbt, airflow-*)"
+    fields:
+      depends_on.postgres.condition:
+        type: string
+        required: true
+        default: "service_healthy"
+        validation:
+          - "one of service_started|service_healthy|service_completed_successfully"
+          - "service_healthy when the dependency is a database"
+        notes: "Short syntax equals service_started"
+      environment.DB_HOST:
+        type: string
+        required: true
+        default: "postgres"
+        validation:
+          - "equals the service name; never localhost"
+        notes: "Port is the container port (5432)"
+      profiles:
+        type: string  # list
+        required: false
+        default: "[]"
+        validation:
+          - "on-demand services (ingest -> jobs, dbt -> tools) declare a profile"
+        notes: "Activate with --profile <name>"
+      restart:
+        type: string
+        required: false
+        default: "no"
+        validation:
+          - "one of no|always|on-failure[:n]|unless-stopped"
+          - "batch jobs use \"no\"; long-running services unless-stopped/always"
+        notes: "Quote \"no\" in YAML"
+
+  x-airflow-common:
+    description: "Shared anchor merged into every airflow-* service"
+    fields:
+      environment.AIRFLOW__CORE__EXECUTOR:
+        type: string
+        required: true
+        default: "LocalExecutor"
+        validation:
+          - "LocalExecutor for this KB (CeleryExecutor requires redis + worker)"
+        notes: ""
+      environment.AIRFLOW__CORE__EXECUTION_API_SERVER_URL:
+        type: string
+        required: true
+        default: "http://airflow-apiserver:8080/execution/"
+        validation:
+          - "host equals the api-server service name"
+        notes: "Airflow 3 task execution API"
+      user:
+        type: string
+        required: true
+        default: "${AIRFLOW_UID:-50000}:0"
+        validation:
+          - "group is 0"
+        notes: "AIRFLOW_UID set in .env to `id -u` on Linux"
+
+  dotenv:
+    description: ".env next to compose.yaml (interpolation only)"
+    fields:
+      committed:
+        type: boolean
+        required: true
+        default: "false"
+        validation:
+          - "listed in .gitignore and .dockerignore"
+          - ".env.example with dummy values is committed instead"
+        notes: "Shell environment overrides .env values"

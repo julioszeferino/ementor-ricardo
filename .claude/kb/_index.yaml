@@ -1,0 +1,168 @@
+# KB manifest -- registry of all knowledge base domains
+version: "1.0"
+last_updated: "2026-10-09"
+
+domains:
+  python:
+    name: Python
+    description: Modern Python (3.12+) for data engineering - typing, dataclasses, generators, context managers, errors, logging, pathlib, packaging with uv, pytest, ruff, mypy
+    path: python/
+    last_validated: "2026-10-09"
+    validation_source: "web/official docs (MCP unavailable)"
+    entry_points:
+      index: index.md
+      quick_reference: quick-reference.md
+    concepts:
+      - name: type-hints
+        path: concepts/type-hints.md
+        confidence: 0.95
+      - name: dataclasses
+        path: concepts/dataclasses.md
+        confidence: 0.95
+      - name: generators-iterators
+        path: concepts/generators-iterators.md
+        confidence: 0.95
+      - name: context-managers
+        path: concepts/context-managers.md
+        confidence: 0.95
+      - name: exceptions
+        path: concepts/exceptions.md
+        confidence: 0.95
+      - name: logging
+        path: concepts/logging.md
+        confidence: 0.95
+      - name: pathlib-file-io
+        path: concepts/pathlib-file-io.md
+        confidence: 0.95
+      - name: packaging-venv
+        path: concepts/packaging-venv.md
+        confidence: 0.95
+    patterns:
+      - name: project-setup-uv
+        path: patterns/project-setup-uv.md
+      - name: streaming-etl-pipeline
+        path: patterns/streaming-etl-pipeline.md
+      - name: logging-setup
+        path: patterns/logging-setup.md
+      - name: testing-pytest
+        path: patterns/testing-pytest.md
+      - name: error-handling-retry
+        path: patterns/error-handling-retry.md
+    specs:
+      - name: python-toolchain
+        path: specs/python-toolchain.yaml
+    examples:
+      tests:
+        - name: python-kb-checks
+          path: examples/tests/python-kb-checks.json
+
+  docker:
+    name: Docker
+    description: Docker + Docker Compose (Compose Specification, docker compose v2) for the local data stack - images/layers, Dockerfile best practices, lifecycle, volumes, networking, healthchecks, env/secrets; Postgres, Airflow 3 LocalExecutor, dbt and uv images
+    path: docker/
+    last_validated: "2026-10-09"
+    validation_source: "web/official docs (MCP unavailable) + docker compose config"
+    entry_points:
+      index: index.md
+      quick_reference: quick-reference.md
+    concepts:
+      - name: images-layers-cache
+        path: concepts/images-layers-cache.md
+        confidence: 0.95
+      - name: dockerfile-best-practices
+        path: concepts/dockerfile-best-practices.md
+        confidence: 0.95
+      - name: container-lifecycle
+        path: concepts/container-lifecycle.md
+        confidence: 0.95
+      - name: volumes-bind-mounts
+        path: concepts/volumes-bind-mounts.md
+        confidence: 0.95
+      - name: networking
+        path: concepts/networking.md
+        confidence: 0.95
+      - name: compose-services-healthchecks
+        path: concepts/compose-services-healthchecks.md
+        confidence: 0.95
+      - name: env-vars-secrets
+        path: concepts/env-vars-secrets.md
+        confidence: 0.95
+    patterns:
+      - name: python-uv-dockerfile
+        path: patterns/python-uv-dockerfile.md
+      - name: postgres-service
+        path: patterns/postgres-service.md
+      - name: airflow-local-compose
+        path: patterns/airflow-local-compose.md
+      - name: dbt-runner-container
+        path: patterns/dbt-runner-container.md
+      - name: compose-dev-workflow
+        path: patterns/compose-dev-workflow.md
+    specs:
+      - name: compose-stack
+        path: specs/compose-stack.yaml
+    examples:
+      tests:
+        - name: docker-kb-checks
+          path: examples/tests/docker-kb-checks.json
+
+  dbt:
+    name: dbt
+    description: dbt Core 1.11 + dbt-postgres for the warehouse - project/profiles, sources & freshness, ref/DAG, materializations & Postgres incremental strategies, staging/intermediate/marts layers, data & unit tests, Jinja/macros, seeds/snapshots (SCD2), docs; Kimball star schema with dbt_utils surrogate keys
+    path: dbt/
+    last_validated: "2026-10-09"
+    validation_source: "web/official docs (MCP unavailable) + dbt parse/build (dbt-core 1.11.15, dbt-postgres 1.11.0, scratch Postgres 16)"
+    entry_points:
+      index: index.md
+      quick_reference: quick-reference.md
+    concepts:
+      - name: project-structure
+        path: concepts/project-structure.md
+        confidence: 0.95
+      - name: profiles-targets
+        path: concepts/profiles-targets.md
+        confidence: 0.95
+      - name: sources-freshness
+        path: concepts/sources-freshness.md
+        confidence: 0.95
+      - name: models-ref-dag
+        path: concepts/models-ref-dag.md
+        confidence: 0.95
+      - name: materializations
+        path: concepts/materializations.md
+        confidence: 0.95
+      - name: layered-architecture
+        path: concepts/layered-architecture.md
+        confidence: 0.95
+      - name: testing
+        path: concepts/testing.md
+        confidence: 0.95
+      - name: jinja-macros
+        path: concepts/jinja-macros.md
+        confidence: 0.95
+      - name: seeds-snapshots
+        path: concepts/seeds-snapshots.md
+        confidence: 0.95
+      - name: documentation
+        path: concepts/documentation.md
+        confidence: 0.95
+    patterns:
+      - name: staging-model
+        path: patterns/staging-model.md
+      - name: star-schema-marts
+        path: patterns/star-schema-marts.md
+      - name: incremental-fact-postgres
+        path: patterns/incremental-fact-postgres.md
+      - name: snapshot-scd2-dimension
+        path: patterns/snapshot-scd2-dimension.md
+      - name: schema-yml-tests
+        path: patterns/schema-yml-tests.md
+      - name: project-setup-commands
+        path: patterns/project-setup-commands.md
+    specs:
+      - name: dbt-project
+        path: specs/dbt-project.yaml
+    examples:
+      tests:
+        - name: dbt-kb-checks
+          path: examples/tests/dbt-kb-checks.json

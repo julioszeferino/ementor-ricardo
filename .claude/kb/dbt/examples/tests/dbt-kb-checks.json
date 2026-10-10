@@ -1,0 +1,128 @@
+{
+  "name": "dbt-kb-checks",
+  "description": "Behaviors backing dbt KB claims, verified with dbt-core 1.11.15 + dbt-postgres 1.11.0 on a scratch project assembled from the KB snippets (dbt parse offline; dbt build against a local Postgres 16.2 from the pgserver wheel, no Docker)",
+  "domain": "dbt",
+  "confidence_required": 0.98,
+  "last_validated": "2026-10-09",
+  "cases": [
+    {
+      "id": "TC001",
+      "description": "Pinned versions resolve on Python 3.12 and dbt_utils range installs",
+      "input": "pip install 'dbt-core~=1.11.0' 'dbt-postgres~=1.11.0'; dbt deps",
+      "expected": "dbt-core 1.11.15, dbt-postgres 1.11.0, dbt_utils 1.4.1 in package-lock.yml",
+      "expected_type": "resolution"
+    },
+    {
+      "id": "TC002",
+      "description": "Project assembled from KB snippets parses without warnings",
+      "input": "dbt parse",
+      "expected": "exit code 0, no deprecation warnings",
+      "expected_type": "exit_code"
+    },
+    {
+      "id": "TC003",
+      "description": "generate_schema_name_for_env override resolves schemas per target",
+      "input": "dbt parse --target dev|prod; read node.schema from manifest.json",
+      "expected": "dev: all nodes in dbt_dev; prod: stg_* staging, dim_*/fct_* marts, snapshot snapshots, seed staging",
+      "expected_type": "mapping"
+    },
+    {
+      "id": "TC004",
+      "description": "env_var without default fails when unset",
+      "input": "env -u DBT_USER dbt parse",
+      "expected": "Parsing Error: Env var required but not provided: 'DBT_USER'",
+      "expected_type": "error"
+    },
+    {
+      "id": "TC005",
+      "description": "Top-level generic test arguments are deprecated",
+      "input": "accepted_values: {values: [1, 2], quote: false} without arguments:",
+      "expected": "WARNING MissingArgumentsPropertyInGenericTestDeprecation",
+      "expected_type": "warning"
+    },
+    {
+      "id": "TC006",
+      "description": "Same model described in two YAML files",
+      "input": "models: [{name: stg_erp__produtos}] in a second properties file",
+      "expected": "Compilation Error: dbt found two schema.yml entries for the same resource",
+      "expected_type": "error"
+    },
+    {
+      "id": "TC007",
+      "description": "state:modified selects a changed model offline",
+      "input": "cp target/manifest.json state/; edit stg_erp__produtos; dbt ls -s state:modified+ --state state --resource-type model",
+      "expected": "stg_erp__produtos, dim_produtos",
+      "expected_type": "list[str]"
+    },
+    {
+      "id": "TC008",
+      "description": "Full project builds and tests on Postgres",
+      "input": "dbt build (dev)",
+      "expected": "PASS=46 (1 seed, 1 snapshot, 3 views, 4 tables incl. the table variant of fct_vendas as fct_vendas_simples, 1 incremental, 35 data tests, 1 unit test)",
+      "expected_type": "run_result"
+    },
+    {
+      "id": "TC009",
+      "description": "Incremental unit test with input: this on a fresh database",
+      "input": "dbt build on an empty schema",
+      "expected": "unit test ERROR: relation fct_vendas doesn't exist; dbt run --empty fails (snapshot not built); dbt build --empty --exclude-resource-type unit_test then dbt build -> PASS=48",
+      "expected_type": "error"
+    },
+    {
+      "id": "TC010",
+      "description": "--empty rewrites ref() into an aliased subquery",
+      "input": "from {{ ref('stg_erp__vendas') }} as v ; dbt run --empty",
+      "expected": "syntax error at or near \"as\"; import-CTE style works",
+      "expected_type": "error"
+    },
+    {
+      "id": "TC011",
+      "description": "Snapshot + SCD2 dim + point-in-time fact join",
+      "input": "raw.clientes id=10 uf SP -> RJ at 2025-03-01; dbt build",
+      "expected": "2 versions in dim_clientes; Jan sale -> SP version, Mar sale -> RJ version",
+      "expected_type": "rows"
+    },
+    {
+      "id": "TC012",
+      "description": "delete+insert incremental replaces updated rows and adds new ones",
+      "input": "update raw.vendas id=2 quantidade 5; insert id=4; dbt build -s fct_vendas",
+      "expected": "fct_vendas id=2 quantidade 5, id=4 present, no duplicates (unique test PASS)",
+      "expected_type": "rows"
+    },
+    {
+      "id": "TC013",
+      "description": "merge strategy on Postgres 16",
+      "input": "incremental_strategy='merge', unique_key='venda_id', second run",
+      "expected": "merge into ... as DBT_INTERNAL_DEST; status MERGE 2",
+      "expected_type": "sql"
+    },
+    {
+      "id": "TC014",
+      "description": "Source freshness warn threshold",
+      "input": "raw.vendas _loaded_at = now() - 10h; warn_after 6h; dbt source freshness -s source:erp.vendas",
+      "expected": "WARN freshness of erp.vendas (exit 0)",
+      "expected_type": "warning"
+    },
+    {
+      "id": "TC015",
+      "description": "hard_deletes: invalidate closes deleted rows",
+      "input": "delete raw.clientes id=11; dbt snapshot",
+      "expected": "snap row id=11 gets dbt_valid_to = snapshot timestamp",
+      "expected_type": "rows"
+    },
+    {
+      "id": "TC016",
+      "description": "persist_docs writes doc block text as Postgres comments",
+      "input": "+persist_docs {relation: true, columns: true}; dbt build",
+      "expected": "obj_description(fct_vendas) and col_description(stg_erp__vendas.status) set",
+      "expected_type": "string"
+    },
+    {
+      "id": "TC017",
+      "description": "store_failures precedence and schema",
+      "input": "data_tests: +store_failures: false in dbt_project.yml, then dbt test --store-failures; remove it and rerun --target dev|prod",
+      "expected": "explicit config wins (no audit table); without it: dev -> dbt_dev.<test>, prod -> dbt_test__audit.<test>",
+      "expected_type": "mapping"
+    }
+  ]
+}

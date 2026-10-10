@@ -1,0 +1,51 @@
+{
+  "name": "python-kb-checks",
+  "description": "Executable behaviors that back claims made in the python KB (run on CPython 3.14.6, valid for 3.12+)",
+  "domain": "python",
+  "confidence_required": 0.98,
+  "last_validated": "2026-10-09",
+  "cases": [
+    {
+      "id": "TC001",
+      "description": "itertools.batched yields tuples; last batch may be shorter",
+      "input": "list(itertools.batched('ABCDEFG', 3))",
+      "expected": "[('A', 'B', 'C'), ('D', 'E', 'F'), ('G',)]",
+      "expected_type": "list[tuple[str, ...]]"
+    },
+    {
+      "id": "TC002",
+      "description": "Mutable dataclass default is rejected at class creation",
+      "input": "@dataclass\nclass C:\n    x: list = []",
+      "expected": "ValueError",
+      "expected_type": "exception"
+    },
+    {
+      "id": "TC003",
+      "description": "Assigning to a frozen dataclass field raises FrozenInstanceError",
+      "input": "Sale(...).amount = 1",
+      "expected": "dataclasses.FrozenInstanceError",
+      "expected_type": "exception"
+    },
+    {
+      "id": "TC004",
+      "description": "A generator is exhausted after one full pass",
+      "input": "g = (x for x in [1, 2]); list(g); list(g)",
+      "expected": "[]",
+      "expected_type": "list"
+    },
+    {
+      "id": "TC005",
+      "description": "date.fromisoformat error message for invalid month (used in testing-pytest pattern)",
+      "input": "datetime.date.fromisoformat('2026-13-01')",
+      "expected": "ValueError: month must be in 1..12, not 13",
+      "expected_type": "exception"
+    },
+    {
+      "id": "TC006",
+      "description": "streaming-etl-pipeline on the conftest sample loads 2 rows and rejects 1",
+      "input": "run(sales_csv, db, batch_size=1)",
+      "expected": "read=3 loaded=2 rejected=1 SUM(amount)=22.4",
+      "expected_type": "RunStats"
+    }
+  ]
+}

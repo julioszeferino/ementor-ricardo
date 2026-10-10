@@ -1,0 +1,72 @@
+{
+  "name": "docker-kb-checks",
+  "description": "Behaviors backing docker KB claims, verified with `docker compose config` (Docker Compose 5.3.1, no daemon required) and PyPI resolution",
+  "domain": "docker",
+  "confidence_required": 0.98,
+  "last_validated": "2026-10-09",
+  "cases": [
+    {
+      "id": "TC001",
+      "description": "Merged stack (postgres-service + airflow-local-compose + python-uv-dockerfile + dbt-runner-container excerpts) is a valid Compose model",
+      "input": "docker compose -p dw -f postgres.yaml -f airflow.yaml -f ingest.yaml -f dbt.yaml config --quiet",
+      "expected": "exit code 0",
+      "expected_type": "exit_code"
+    },
+    {
+      "id": "TC002",
+      "description": "Services with a profile are excluded unless the profile is activated",
+      "input": "docker compose config --services (without / with --profile tools --profile jobs)",
+      "expected": "6 services without profiles; adds dbt and ingest with profiles",
+      "expected_type": "list[str]"
+    },
+    {
+      "id": "TC003",
+      "description": "Short depends_on is normalized to condition service_started",
+      "input": "depends_on: [b]",
+      "expected": "b: {condition: service_started, required: true}",
+      "expected_type": "mapping"
+    },
+    {
+      "id": "TC004",
+      "description": "${VAR:?msg} aborts interpolation when the variable is unset",
+      "input": "env -u DW_PASSWORD docker compose config --quiet",
+      "expected": "required variable DW_PASSWORD is missing a value: set DW_PASSWORD (exit 1)",
+      "expected_type": "error"
+    },
+    {
+      "id": "TC005",
+      "description": "${VAR-default} keeps an empty value; ${VAR:-default} replaces it",
+      "input": "EMPTYV= with X1: ${EMPTYV-d1}, X2: ${EMPTYV:-d2}",
+      "expected": "X1: \"\", X2: d2",
+      "expected_type": "mapping"
+    },
+    {
+      "id": "TC006",
+      "description": "Shell environment overrides the .env file for interpolation",
+      "input": ".env POSTGRES_DB=from_dotenv; POSTGRES_DB=from_shell docker compose config",
+      "expected": "from_shell (and from_dotenv when the shell var is absent)",
+      "expected_type": "string"
+    },
+    {
+      "id": "TC007",
+      "description": "Named volumes, networks and secrets are prefixed with the project name",
+      "input": "name: dw with volumes pgdata, airflow-db and secret pg_password",
+      "expected": "dw_pgdata, dw_airflow-db, dw_default, dw_pg_password",
+      "expected_type": "list[str]"
+    },
+    {
+      "id": "TC008",
+      "description": "Top-level version key only triggers a warning",
+      "input": "version: \"3.8\"",
+      "expected": "warning: the attribute `version` is obsolete, it will be ignored",
+      "expected_type": "warning"
+    },
+    {
+      "id": "TC009",
+      "description": "Pinned dbt versions used in dbt-runner-container / airflow Dockerfiles resolve for Python 3.12 linux wheels",
+      "input": "pip install --dry-run --only-binary=:all: --python-version 3.12 'dbt-core~=1.11.0' 'dbt-postgres~=1.11.0'",
+      "expected": "dbt-core 1.11.15, dbt-postgres 1.11.0, psycopg2-binary 2.9.13",
+      "expected_type": "resolution"
+    }
+  ]
+}

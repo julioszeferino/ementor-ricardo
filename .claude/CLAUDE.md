@@ -1,0 +1,1 @@
+To understand the project context, tech stack, and formatting rules, you MUST read the AGENTS.md file in the repository root before suggesting or modifying any code.
