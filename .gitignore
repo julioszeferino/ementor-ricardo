@@ -29,7 +29,7 @@ airflow/logs/*
 .airflow/
 
 # Diversos
-logs/
+/logs/
 *.db
 .DS_Store
 .idea/
