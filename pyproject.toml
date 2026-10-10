@@ -20,7 +20,7 @@ dev = [
     "sqlfluff>=3.2",
 ]
 dbt = [
-    "dbt-core~=1.11.0",
+    "dbt-core>=1.11,<1.13",
     "dbt-postgres~=1.11.0",
 ]
 
