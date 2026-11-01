@@ -1,5 +1,5 @@
 # Imagem com o pacote de ingestão e o dbt. Usada pelos serviços `ingestion` e `dbt`.
-FROM python:3.12-slim
+FROM python:3.15-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
